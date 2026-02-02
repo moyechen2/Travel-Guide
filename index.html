@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2026春节港澳深渝旅行规划管理器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans SC', sans-serif; }
+        .content-editable:focus { outline: none; }
+        .content-editable img { max-width: 100%; height: auto; border-radius: 0.5rem; margin: 1rem 0; }
+        .image-resize-wrapper { position: relative; display: inline-block; max-width: 100%; margin: 1rem 0; }
+        .image-resize-wrapper img { display: block; width: 100%; height: auto; margin: 0; }
+        .image-resize-handle { position: absolute; right: 4px; bottom: 4px; width: 12px; height: 12px; background: #2563eb; border: 2px solid #fff; box-shadow: 0 0 0 1px #93c5fd; border-radius: 2px; cursor: nwse-resize; user-select: none; }
+        .day-btn.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .day-item.active { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
+        .day-item.active .day-btn { color: white; }
+        .day-item [contenteditable]:hover { background: rgba(255,255,255,0.2); border-radius: 3px; padding: 0 4px; margin: 0 -4px; }
+        .day-item.active [contenteditable]:hover { background: rgba(255,255,255,0.3); }
+        .day-item [contenteditable]:focus { background: white; color: #333; outline: none; border-radius: 3px; padding: 0 4px; box-shadow: 0 0 0 2px rgba(99,102,241,0.5); }
+        /* 日期选择器样式 */
+        .date-picker { font-size: 11px; background: rgba(255,255,255,0.9); border: 1px solid #ddd; border-radius: 4px; padding: 2px 4px; color: #666; }
+        .day-item.active .date-picker { background: rgba(255,255,255,0.95); border-color: rgba(255,255,255,0.5); color: #333; }
+        .date-picker::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.6; }
+        .date-picker::-webkit-calendar-picker-indicator:hover { opacity: 1; }
+        /* 拖拽样式 */
+        .day-item { position: relative; }
+        .day-item.dragging { opacity: 0.5; }
+        .day-item.drag-over { border-top: 2px solid #667eea; }
+        .drag-handle { z-index: 10; }
+        .day-item:hover .drag-handle { opacity: 1; }
+        .glass-effect { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .save-indicator { opacity: 0; transition: opacity 0.3s ease; }
+        .save-indicator.show { opacity: 1; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease; }
+        .editable-text { padding: 0 2px; border-radius: 3px; }
+        .editable-text:hover { background: rgba(255,255,255,0.2); }
+        .editable-text:focus { outline: none; background: rgba(255,255,255,0.3); box-shadow: 0 0 0 2px rgba(255,255,255,0.4); }
+        .color-button { 
+            display: inline-flex; 
+            align-items: center; 
+            gap: 4px; 
+            padding: 4px 6px; 
+            background: linear-gradient(to bottom, #fff, #f3f4f6); 
+            border: 1px solid #d1d5db; 
+            border-radius: 4px; 
+            font-size: 12px; 
+            cursor: pointer; 
+            transition: all 0.15s;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+        .color-button:hover { 
+            background: linear-gradient(to bottom, #f9fafb, #e5e7eb); 
+            border-color: #9ca3af; 
+        }
+        .color-button:active { 
+            background: #e5e7eb; 
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+        .color-button:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.4); }
+        .color-swatch { 
+            width: 20px; 
+            height: 20px; 
+            border: 1px solid rgba(0,0,0,0.2); 
+            border-radius: 3px; 
+            background: #111827; 
+            display: inline-block;
+        }
+        
+        /* 颜色面板 - Office风格 */
+        .color-panel { 
+            position: absolute; 
+            top: calc(100% + 8px); 
+            left: 50%;
+            transform: translateX(-50%);
+            background: #fff; 
+            border: 1px solid #d1d5db; 
+            border-radius: 8px; 
+            padding: 12px; 
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2); 
+            z-index: 9999; 
+            width: 260px;
+            display: none;
+        }
+        .color-panel.show { display: block; }
+        /* 颜色面板小三角 */
+        .color-panel::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 6px solid #d1d5db;
+        }
+        .color-panel::after {
+            content: '';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 5px solid #fff;
+        }
+        .color-section-title { font-size: 13px; color: #374151; margin: 0 0 8px 0; font-weight: 500; }
+        
+        /* 主题颜色 - 5行10列 */
+        .color-grid-theme { 
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); 
+            gap: 3px; 
+            margin-bottom: 12px;
+        }
+        /* 标准色 - 1行10列 */
+        .color-grid-standard { 
+            display: grid; 
+            grid-template-columns: repeat(10, 1fr); 
+            gap: 3px; 
+            margin-bottom: 12px;
+        }
+        
+        .color-cell { 
+            width: 100%;
+            aspect-ratio: 1;
+            min-width: 18px;
+            min-height: 18px;
+            border: 1px solid rgba(0,0,0,0.15); 
+            border-radius: 2px; 
+            cursor: pointer; 
+            transition: all 0.15s;
+            padding: 0;
+            margin: 0;
+        }
+        .color-cell:hover { 
+            transform: scale(1.15); 
+            border-color: #6b7280;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+            z-index: 10;
+        }
+        .color-cell:active { transform: scale(1.05); }
+        
+        .color-more { 
+            display: flex; 
+            align-items: center; 
+            justify-content: space-between; 
+            padding-top: 10px;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 4px;
+        }
+        .color-more-label { font-size: 13px; color: #374151; cursor: pointer; }
+        .color-more-label:hover { color: #2563eb; }
+        .color-more-input { 
+            width: 60px; 
+            height: 28px; 
+            border: 1px solid #d1d5db; 
+            border-radius: 4px;
+            padding: 2px; 
+            background: #fff; 
+            cursor: pointer; 
+        }
+        .font-step-btn { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; background: #fff; border: 1px solid #d1d5db; border-radius: 6px; font-size: 14px; line-height: 1; cursor: pointer; }
+        .font-step-btn:hover { background: #f9fafb; }
+        .font-step-btn:focus { outline: none; box-shadow: 0 0 0 2px rgba(59,130,246,0.35); }
+        /* 表格样式 */
+        .content-editable table { width: 100%; border-collapse: collapse; margin: 1rem 0; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .content-editable th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 12px 16px; text-align: left; font-weight: 600; }
+        .content-editable td { padding: 10px 16px; border-bottom: 1px solid #e5e7eb; background: white; }
+        .content-editable tr:nth-child(even) td { background: #f9fafb; }
+        .content-editable tr:hover td { background: #f3f4f6; }
+        .content-editable ul, .content-editable ol { margin: 1rem 0; padding-left: 2rem; }
+        .content-editable li { margin: 0.5rem 0; line-height: 1.6; }
+        .content-editable ul { list-style-type: disc; }
+        .content-editable ul ul { list-style-type: circle; margin: 0.25rem 0; }
+        .content-editable ol { list-style-type: decimal; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f1f1f1; }
+        ::-webkit-scrollbar-thumb { background: #888; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #555; }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-100 min-h-screen">
+    <div class="flex h-screen overflow-hidden">
+        <!-- 左侧边栏 -->
+        <aside class="w-72 bg-white shadow-xl z-20 flex flex-col">
+            <div class="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
+                <h1 class="text-xl font-bold mb-1"><i class="fas fa-plane-departure mr-2"></i><span id="sidebarTitle" class="editable-text" contenteditable="true" data-header-key="sidebarTitle" data-default="旅行规划">旅行规划</span></h1>
+                <p class="text-xs opacity-80"><span id="sidebarSubtitle" class="editable-text" contenteditable="true" data-header-key="sidebarSubtitle" data-default="2026春节 · 港澳深渝">2026春节 · 港澳深渝</span></p>
+            </div>
+            <nav class="flex-1 overflow-y-auto p-4">
+                <div class="space-y-2" id="dayNav"></div>
+            </nav>
+            <div class="p-4 border-t bg-gray-50">
+                <button onclick="exportData()" class="w-full mb-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition flex items-center justify-center text-sm">
+                    <i class="fas fa-download mr-2"></i>导出攻略
+                </button>
+                <label class="w-full px-4 py-2 bg-white border-2 border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50 transition flex items-center justify-center text-sm cursor-pointer">
+                    <i class="fas fa-upload mr-2"></i>导入攻略
+                    <input type="file" id="importFile" accept=".json" class="hidden" onchange="importData(this)">
+                </label>
+            </div>
+        </aside>
+        
+        <!-- 主内容区 -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <header class="glass-effect border-b px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+                <div class="flex items-center">
+                    <h2 id="currentDayTitle" class="text-2xl font-bold text-gray-800"></h2>
+                    <span id="saveStatus" class="save-indicator ml-4 text-sm text-green-600 flex items-center">
+                        <i class="fas fa-check-circle mr-1"></i>已自动保存
+                    </span>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="insertLink()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition flex items-center text-sm">
+                        <i class="fas fa-link mr-2"></i>插入链接
+                    </button>
+                    <button onclick="unlink()" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="取消链接">
+                        <i class="fas fa-unlink"></i>
+                    </button>
+                    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                    <button onclick="formatText('bold')" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="加粗 (Ctrl+B)">
+                        <i class="fas fa-bold"></i>
+                    </button>
+                    <button onclick="formatText('italic')" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="斜体 (Ctrl+I)">
+                        <i class="fas fa-italic"></i>
+                    </button>
+                    <button onclick="formatText('underline')" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="下划线 (Ctrl+U)">
+                        <i class="fas fa-underline"></i>
+                    </button>                    <div class="flex items-center gap-2 ml-2">
+                        <button type="button" class="font-step-btn" onmousedown="saveSelectionRange(); event.preventDefault();" onclick="adjustFontSize(-2)">-</button>
+                        <select id="fontSizeSelect" onmousedown="saveSelectionRange()" onchange="applyFontSize(this.value)" class="px-2 py-1 bg-white border border-gray-300 rounded-md text-sm">
+                            <option value="">&#23383;&#21495;</option>
+                            <option value="12px">12</option>
+                            <option value="14px">14</option>
+                            <option value="16px">16</option>
+                            <option value="18px">18</option>
+                            <option value="20px">20</option>
+                            <option value="24px">24</option>
+                            <option value="28px">28</option>
+                            <option value="32px">32</option>
+                        </select>
+                        <button type="button" class="font-step-btn" onmousedown="saveSelectionRange(); event.preventDefault();" onclick="adjustFontSize(2)">+</button>
+                        <div class="relative" id="colorPicker">
+                            <button type="button" id="colorButton" class="color-button" onmousedown="saveSelectionRange(); event.preventDefault();" onclick="toggleColorPanel(event)">
+                                <span id="currentColorSwatch" class="color-swatch"></span>
+                                <i class="fas fa-caret-down text-xs"></i>
+                            </button>
+                            <div id="colorPanel" class="color-panel" onmousedown="saveSelectionRange(); event.preventDefault();">
+                                <div id="themeColorLabel" class="color-section-title">主题颜色</div>
+                                <div id="themeColorGrid" class="color-grid-theme"></div>
+                                <div id="standardColorLabel" class="color-section-title">标准色</div>
+                                <div id="standardColorGrid" class="color-grid-standard"></div>
+                                <div class="color-more">
+                                    <label id="moreColorLabel" class="color-more-label" for="moreColorInput">其他颜色...</label>
+                                    <input type="color" id="moreColorInput" value="#111827" onmousedown="saveSelectionRange(); event.preventDefault();" onchange="applyTextColor(this.value)" class="color-more-input">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+<div class="h-6 w-px bg-gray-300 mx-1"></div>
+                    <button onclick="formatText('insertUnorderedList')" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="无序列表">
+                        <i class="fas fa-list-ul"></i>
+                    </button>
+                    <button onclick="formatText('insertOrderedList')" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="有序列表">
+                        <i class="fas fa-list-ol"></i>
+                    </button>
+                    <button onclick="insertTable()" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="插入表格">
+                        <i class="fas fa-table"></i>
+                    </button>
+                    <div class="h-6 w-px bg-gray-300 mx-1"></div>
+                    <button onclick="insertDivider()" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition" title="插入分隔线">
+                        <i class="fas fa-minus"></i>
+                    </button>
+                </div>
+            </header>
+            
+            <div class="flex-1 overflow-y-auto p-8">
+                <div class="max-w-4xl mx-auto bg-white rounded-2xl shadow-lg p-8 min-h-[600px]">
+                    <div id="contentEditor" class="content-editable prose prose-lg max-w-none focus:outline-none" contenteditable="true"></div>
+                    
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- 插入链接弹窗 -->
+    <div id="linkModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-96">
+            <h3 class="text-lg font-bold mb-4">插入链接</h3>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">链接名称</label>
+                    <input type="text" id="linkText" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="显示的文字">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">URL</label>
+                    <input type="text" id="linkUrl" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500" placeholder="https://...">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeLinkModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">取消</button>
+                <button onclick="confirmInsertLink()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">插入</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 插入表格弹窗 -->
+    <div id="tableModal" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-2xl p-6 w-80">
+            <h3 class="text-lg font-bold mb-4">插入表格</h3>
+            <div class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">行数</label>
+                        <input type="number" id="tableRows" min="1" max="20" value="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">列数</label>
+                        <input type="number" id="tableCols" min="1" max="10" value="3" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 text-center">
+                    </div>
+                </div>
+                <div class="bg-gray-50 p-3 rounded-lg text-sm text-gray-600">
+                    <i class="fas fa-info-circle mr-1"></i>插入后可直接在表格中编辑内容
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="closeTableModal()" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition">取消</button>
+                <button onclick="confirmInsertTable()" class="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">插入</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+
+        // Travel data
+        let travelData = null;
+        let currentDayId = 1;
+        let saveTimeout = null;
+        let savedRange = null;
+
+        function saveSelectionRange() {
+            const selection = window.getSelection();
+            if (selection && selection.rangeCount > 0) {
+                savedRange = selection.getRangeAt(0).cloneRange();
+            }
+        }
+
+        function restoreSelectionRange() {
+            if (!savedRange) return;
+            const selection = window.getSelection();
+            selection.removeAllRanges();
+            selection.addRange(savedRange);
+        }
+
+        let resizingWrapper = null;
+        let resizeStartX = 0;
+        let resizeStartWidth = 0;
+        let resizeMaxWidth = 0;
+
+        function wrapImageForResize(img) {
+            if (!img) return;
+            let wrapper = img.closest('.image-resize-wrapper');
+            if (!wrapper) {
+                wrapper = document.createElement('span');
+                wrapper.className = 'image-resize-wrapper';
+                wrapper.contentEditable = 'false';
+
+                const handle = document.createElement('span');
+                handle.className = 'image-resize-handle';
+
+                const parent = img.parentNode;
+                parent.insertBefore(wrapper, img);
+                wrapper.appendChild(img);
+                wrapper.appendChild(handle);
+            } else if (!wrapper.querySelector('.image-resize-handle')) {
+                const handle = document.createElement('span');
+                handle.className = 'image-resize-handle';
+                wrapper.appendChild(handle);
+            }
+
+            if (!wrapper.style.width) {
+                const editor = document.getElementById('contentEditor');
+                const setWidth = () => {
+                    const editorWidth = editor ? editor.clientWidth : img.clientWidth;
+                    const baseWidth = img.clientWidth || img.naturalWidth || editorWidth || 300;
+                    const maxWidth = editorWidth || baseWidth;
+                    wrapper.style.width = Math.min(baseWidth, maxWidth) + 'px';
+                };
+                if (img.complete) {
+                    setWidth();
+                } else {
+                    img.addEventListener('load', setWidth, { once: true });
+                }
+            }
+        }
+
+        function initResizableImages(root) {
+            const scope = root || document.getElementById('contentEditor');
+            if (!scope) return;
+            const images = scope.querySelectorAll('img');
+            images.forEach(img => wrapImageForResize(img));
+        }
+
+        // 初始化数据
+        function initData() {
+            const defaultData = {
+                days: []
+            };
+
+            const saved = localStorage.getItem('travelData');
+            if (saved) {
+                travelData = JSON.parse(saved);
+            } else {
+                travelData = defaultData;
+                saveToLocalStorage();
+            }
+        }
+
+        // 保存到LocalStorage
+        function saveToLocalStorage() {
+            localStorage.setItem('travelData', JSON.stringify(travelData));
+        }
+
+        function initHeaderText() {
+            const fields = document.querySelectorAll('[data-header-key]');
+            fields.forEach(field => {
+                const key = `header:${field.dataset.headerKey}`;
+                const saved = localStorage.getItem(key);
+                if (saved !== null) {
+                    field.textContent = saved;
+                }
+
+                field.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        field.blur();
+                    }
+                });
+
+                field.addEventListener('input', function() {
+                    const value = field.textContent.trim();
+                    localStorage.setItem(key, value);
+                });
+
+                field.addEventListener('blur', function() {
+                    const value = field.textContent.trim();
+                    if (!value) {
+                        const fallback = field.getAttribute('data-default') || '';
+                        field.textContent = fallback;
+                        localStorage.setItem(key, fallback);
+                    }
+                });
+            });
+        }
+
+        // 渲染侧边栏
+        function renderSidebar() {
+            const nav = document.getElementById('dayNav');
+            nav.innerHTML = travelData.days.map((day, index) => {
+                // 提取日期中的数字部分用于date input
+                const dateMatch = day.date && day.date.match(/(\d+)月(\d+)日/);
+                const dateValue = dateMatch ? `2026-${String(dateMatch[1]).padStart(2,'0')}-${String(dateMatch[2]).padStart(2,'0')}` : '';
+                // 只有有有效日期时才显示星期
+                const hasValidDate = dateMatch && day.weekday && day.weekday !== '周?';
+                const weekdayHtml = hasValidDate ? `<span class="weekday-display">${day.weekday}</span>` : '';
+                
+                // 标题颜色（默认继承）
+                const titleColor = day.titleColor || '';
+                const titleStyle = titleColor ? `style="color:${titleColor}"` : '';
+                
+                return `
+                <div class="day-item group relative ${day.id === currentDayId ? 'active' : 'bg-gray-50 hover:bg-gray-100'} rounded-lg transition mb-2 cursor-move"
+                    draggable="true"
+                    data-day-id="${day.id}"
+                    data-index="${index}">
+                    <div class="drag-handle absolute left-1 top-1/2 -translate-y-1/2 text-gray-400 opacity-0 group-hover:opacity-100 cursor-move px-1">
+                        <i class="fas fa-grip-vertical text-xs"></i>
+                    </div>
+                    <button onclick="if(!isDragging) switchDay(${day.id})" 
+                        class="day-btn w-full text-left pl-6 pr-4 py-3 ${day.id === currentDayId ? 'active' : 'text-gray-700'}">
+                        <div class="font-medium" ${titleStyle} contenteditable="true" 
+                            onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"
+                            onblur="updateDayTitle(${day.id}, this.innerText)"
+                            onclick="event.stopPropagation()">${day.title}</div>
+                        <div class="text-xs opacity-70 mt-2 flex items-center gap-2">
+                            <input type="date" 
+                                value="${dateValue}"
+                                min="2026-01-01"
+                                max="2026-12-31"
+                                placeholder="年/月/日"
+                                onchange="updateDayDateFromPicker(${day.id}, this.value)"
+                                onclick="event.stopPropagation()"
+                                class="date-picker text-xs bg-transparent border border-current rounded px-1 py-0.5 cursor-pointer">
+                            ${weekdayHtml}
+                        </div>
+                    </button>
+                    <button onclick="deleteDay(${day.id})" 
+                        class="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition opacity-0 group-hover:opacity-100"
+                        title="删除此页面">
+                        <i class="fas fa-times text-xs"></i>
+                    </button>
+                </div>
+            `}).join('') + `
+                <button onclick="addNewDay()" 
+                    class="w-full mt-4 px-4 py-3 border-2 border-dashed border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-50 hover:border-indigo-400 transition flex items-center justify-center">
+                    <i class="fas fa-plus mr-2"></i>添加新页面
+                </button>
+            `;
+            
+            // 初始化拖拽
+            initDragAndDrop();
+        }
+        
+        // 拖拽排序功能
+        let isDragging = false;
+        let dragSrcEl = null;
+        let dragSrcIndex = -1;
+        
+        function initDragAndDrop() {
+            const items = document.querySelectorAll('.day-item');
+            
+            items.forEach(item => {
+                item.addEventListener('dragstart', handleDragStart);
+                item.addEventListener('dragover', handleDragOver);
+                item.addEventListener('dragenter', handleDragEnter);
+                item.addEventListener('dragleave', handleDragLeave);
+                item.addEventListener('drop', handleDrop);
+                item.addEventListener('dragend', handleDragEnd);
+            });
+        }
+        
+        function handleDragStart(e) {
+            isDragging = true;
+            dragSrcEl = this;
+            dragSrcIndex = parseInt(this.dataset.index);
+            
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+            
+            this.style.opacity = '0.4';
+        }
+        
+        function handleDragOver(e) {
+            if (e.preventDefault) {
+                e.preventDefault();
+            }
+            e.dataTransfer.dropEffect = 'move';
+            return false;
+        }
+        
+        function handleDragEnter(e) {
+            this.classList.add('bg-indigo-100');
+        }
+        
+        function handleDragLeave(e) {
+            this.classList.remove('bg-indigo-100');
+        }
+        
+        function handleDrop(e) {
+            if (e.stopPropagation) {
+                e.stopPropagation();
+            }
+            
+            const dropTargetIndex = parseInt(this.dataset.index);
+            
+            if (dragSrcEl !== this && dragSrcIndex !== dropTargetIndex) {
+                // 先保存当前内容
+                saveCurrentContentSync();
+                
+                // 交换数组中的元素
+                const itemToMove = travelData.days[dragSrcIndex];
+                travelData.days.splice(dragSrcIndex, 1);
+                travelData.days.splice(dropTargetIndex, 0, itemToMove);
+                
+                // 保存并重新渲染
+                saveToLocalStorage();
+                renderSidebar();
+                
+                // 如果当前页面被移动，更新 currentDayId
+                const currentDay = travelData.days.find(d => d.id === currentDayId);
+                if (currentDay) {
+                    // 保持当前页面显示不变
+                }
+                
+                showToast('页面顺序已调整');
+            }
+            
+            return false;
+        }
+        
+        function handleDragEnd(e) {
+            this.style.opacity = '1';
+            
+            const items = document.querySelectorAll('.day-item');
+            items.forEach(item => {
+                item.classList.remove('bg-indigo-100');
+            });
+            
+            setTimeout(() => {
+                isDragging = false;
+            }, 100);
+        }
+        
+        // 获取星期几
+        function getWeekday(dateStr) {
+            const date = new Date(dateStr);
+            const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+            return weekdays[date.getDay()];
+        }
+        
+        // 格式化日期显示
+        function formatDateDisplay(dateStr) {
+            const date = new Date(dateStr);
+            return `${date.getMonth() + 1}月${date.getDate()}日`;
+        }
+        
+        // 更新标题
+        function updateDayTitle(dayId, newTitle) {
+            const day = travelData.days.find(d => d.id === dayId);
+            if (day && newTitle.trim()) {
+                day.title = newTitle.trim();
+                saveToLocalStorage();
+                if (dayId === currentDayId) {
+                    updateMainTitle();
+                }
+                showToast('标题已保存');
+            }
+        }
+        
+        // 从日期选择器更新日期
+        function updateDayDateFromPicker(dayId, dateValue) {
+            const day = travelData.days.find(d => d.id === dayId);
+            if (!day) return;
+            
+            if (dateValue) {
+                // 有日期值，更新日期和星期
+                day.date = formatDateDisplay(dateValue);
+                day.weekday = getWeekday(dateValue);
+                saveToLocalStorage();
+                renderSidebar();
+                if (dayId === currentDayId) {
+                    updateMainTitle();
+                }
+                showToast(`日期已更新: ${day.date} ${day.weekday}`);
+            } else {
+                // 清除日期
+                day.date = '';
+                day.weekday = '';
+                saveToLocalStorage();
+                renderSidebar();
+                if (dayId === currentDayId) {
+                    updateMainTitle();
+                }
+                showToast('日期已清除');
+            }
+        }
+        
+        // 添加新页面
+        function addNewDay() {
+            const newId = Math.max(...travelData.days.map(d => d.id), 0) + 1;
+            const newDay = {
+                id: newId,
+                date: '',
+                weekday: '',
+                title: `Day${newId} 新行程`,
+                content: '<h2>新行程页面</h2><p>点击编辑内容...</p>'
+            };
+            travelData.days.push(newDay);
+            saveToLocalStorage();
+            renderSidebar();
+            switchDay(newId);
+            showToast('新页面已添加');
+        }
+        
+        // 删除页面
+        function deleteDay(dayId) {
+            if (travelData.days.length <= 1) {
+                alert('至少保留一个页面！');
+                return;
+            }
+            if (!confirm('确定要删除这个页面吗？')) return;
+            
+            // 先保存当前页面内容，防止数据丢失
+            saveCurrentContentSync();
+            
+            const index = travelData.days.findIndex(d => d.id === dayId);
+            if (index === -1) return;
+            
+            // 从数组中移除
+            travelData.days.splice(index, 1);
+            
+            // 保存到本地存储
+            saveToLocalStorage();
+            
+            // 如果删除的是当前页面，需要切换到其他页面
+            if (currentDayId === dayId) {
+                // 优先切换到下一个，如果没有则切换到上一个
+                const newIndex = Math.min(index, travelData.days.length - 1);
+                const newDayId = travelData.days[newIndex].id;
+                currentDayId = newDayId;
+                
+                // 更新UI
+                const day = travelData.days.find(d => d.id === newDayId);
+                document.getElementById('currentDayTitle').innerHTML = `${day.title} <span class="text-lg font-normal text-gray-500">${day.date} ${day.weekday}</span>`;
+                document.getElementById('contentEditor').innerHTML = day.content;
+                renderSidebar();
+            } else {
+                // 删除的不是当前页面，只需重新渲染侧边栏
+                renderSidebar();
+            }
+            
+            showToast('页面已删除');
+        }
+
+        // 切换天数
+        function switchDay(dayId) {
+            saveCurrentContent();
+            currentDayId = dayId;
+            const day = travelData.days.find(d => d.id === dayId);
+            updateMainTitle();
+            document.getElementById('contentEditor').innerHTML = day.content;
+            initResizableImages(document.getElementById('contentEditor'));
+            renderSidebar();
+        }
+        
+        // 更新主标题显示
+        function updateMainTitle() {
+            const day = travelData.days.find(d => d.id === currentDayId);
+            if (!day) return;
+            
+            // 检查是否有有效日期
+            const hasValidDate = day.date && day.date.match(/\d+月\d+日/);
+            const hasValidWeekday = day.weekday && day.weekday !== '周?';
+            
+            // 构建日期信息字符串
+            let dateInfo = '';
+            if (hasValidDate) {
+                dateInfo = day.date;
+                if (hasValidWeekday) {
+                    dateInfo += ' ' + day.weekday;
+                }
+            }
+            
+            // 标题颜色样式
+            const titleStyle = day.titleColor ? `style="color:${day.titleColor}"` : '';
+            
+            const dateSpan = dateInfo ? `<span class="text-lg font-normal text-gray-500">${dateInfo}</span>` : '';
+            document.getElementById('currentDayTitle').innerHTML = `<span ${titleStyle}>${day.title}</span> ${dateSpan}`;
+        }
+
+        // 保存当前内容
+        function saveCurrentContent() {
+            const content = document.getElementById('contentEditor').innerHTML;
+            const day = travelData.days.find(d => d.id === currentDayId);
+            if (day) {
+                day.content = content;
+                saveToLocalStorage();
+            }
+        }
+        
+        // 同步保存当前内容（用于删除前保存）
+        function saveCurrentContentSync() {
+            const content = document.getElementById('contentEditor').innerHTML;
+            const day = travelData.days.find(d => d.id === currentDayId);
+            if (day) {
+                day.content = content;
+            }
+        }
+
+        // 自动保存
+        function autoSave() {
+            clearTimeout(saveTimeout);
+            const indicator = document.getElementById('saveStatus');
+            indicator.classList.remove('show');
+            
+            saveTimeout = setTimeout(() => {
+                saveCurrentContent();
+                indicator.classList.add('show');
+                setTimeout(() => indicator.classList.remove('show'), 2000);
+            }, 1000);
+        }
+
+        // 格式化文本
+        function formatText(command) {
+            document.execCommand(command, false, null);
+            document.getElementById('contentEditor').focus();
+        }
+
+        function isSelectionInEditor(selection, editor) {
+            if (!selection || !editor) return false;
+            const anchor = selection.anchorNode;
+            const focus = selection.focusNode;
+            return editor.contains(anchor) && editor.contains(focus);
+        }
+
+        function applyTextColor(color) {
+            if (!color) return;
+            
+            restoreSelectionRange();
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return;
+            
+            // 检查是否在侧边栏标题中
+            let node = selection.anchorNode;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentElement;
+            }
+            const sidebarTitle = node.closest ? node.closest('.day-btn .font-medium') : null;
+            const dayItem = sidebarTitle ? sidebarTitle.closest('.day-item') : null;
+            
+            if (sidebarTitle && dayItem) {
+                // 在侧边栏标题中，修改对应页面的标题颜色
+                const dayId = parseInt(dayItem.dataset.dayId);
+                const day = travelData.days.find(d => d.id === dayId);
+                if (day) {
+                    day.titleColor = color;
+                    saveToLocalStorage();
+                    renderSidebar();
+                    if (dayId === currentDayId) {
+                        updateMainTitle();
+                    }
+                    showToast('标题颜色已修改');
+                }
+                setCurrentColor(color);
+                return;
+            }
+            
+            // 在主编辑器中
+            const editor = document.getElementById('contentEditor');
+            if (!isSelectionInEditor(selection, editor)) return;
+            
+            editor.focus();
+            document.execCommand('styleWithCSS', false, true);
+            document.execCommand('foreColor', false, color);
+            document.execCommand('styleWithCSS', false, false);
+            setCurrentColor(color);
+            autoSave();
+            updateFormattingControls();
+        }
+
+        // 给选中的内容应用字号
+        function applyFontSize(size) {
+            if (!size) return;
+            const editor = document.getElementById('contentEditor');
+            restoreSelectionRange();
+            const selection = window.getSelection();
+            if (!isSelectionInEditor(selection, editor) || selection.rangeCount === 0) return;
+
+            editor.focus();
+            const range = selection.getRangeAt(0);
+            if (range.collapsed) {
+                const span = document.createElement('span');
+                span.style.fontSize = size;
+                span.textContent = '​';
+                range.insertNode(span);
+                range.setStart(span.firstChild, 1);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                const frag = range.extractContents();
+                applyFontSizeToFragment(frag, size);
+                const firstNode = frag.firstChild;
+                const lastNode = frag.lastChild;
+                range.insertNode(frag);
+                if (firstNode && lastNode) {
+                    const newRange = document.createRange();
+                    newRange.setStartBefore(firstNode);
+                    newRange.setEndAfter(lastNode);
+                    selection.removeAllRanges();
+                    selection.addRange(newRange);
+                }
+            }
+            autoSave();
+            updateFormattingControls();
+        }
+
+        function applyFontSizeToFragment(fragment, size) {
+            const walker = document.createTreeWalker(fragment, NodeFilter.SHOW_TEXT, null);
+            const textNodes = [];
+            while (walker.nextNode()) {
+                textNodes.push(walker.currentNode);
+            }
+            textNodes.forEach(node => {
+                const span = document.createElement('span');
+                span.style.fontSize = size;
+                span.textContent = node.textContent;
+                node.parentNode.replaceChild(span, node);
+            });
+        }
+
+        function getMaxFontSizeInRange(range) {
+            const walker = document.createTreeWalker(range.commonAncestorContainer, NodeFilter.SHOW_TEXT, {
+                acceptNode(node) {
+                    return range.intersectsNode(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                }
+            });
+            let max = null;
+            while (walker.nextNode()) {
+                const node = walker.currentNode;
+                if (!node.textContent || !node.textContent.trim()) continue;
+                const parent = node.parentElement;
+                if (!parent) continue;
+                const size = parseFloat(window.getComputedStyle(parent).fontSize);
+                if (!Number.isNaN(size)) {
+                    max = max === null ? size : Math.max(max, size);
+                }
+            }
+            return max;
+        }
+
+        function adjustFontSize(delta) {
+            const editor = document.getElementById('contentEditor');
+            restoreSelectionRange();
+            const selection = window.getSelection();
+            if (!isSelectionInEditor(selection, editor) || selection.rangeCount === 0) return;
+
+            const range = selection.getRangeAt(0);
+            let current = getMaxFontSizeInRange(range);
+            if (current === null) {
+                const style = getSelectionStyle();
+                if (style && style.fontSize) {
+                    const parsed = parseFloat(style.fontSize);
+                    if (!Number.isNaN(parsed)) current = parsed;
+                }
+            }
+            if (current === null) {
+                const select = document.getElementById('fontSizeSelect');
+                const val = select && select.value ? parseFloat(select.value) : NaN;
+                if (!Number.isNaN(val)) current = val;
+            }
+            if (current === null) current = 16;
+
+            const next = Math.min(72, Math.max(8, current + delta));
+            applyFontSize(`${next}px`);
+        }
+
+        function initColorLabels() {
+            const sizeOption = document.querySelector('#fontSizeSelect option[value=]');
+            if (sizeOption) sizeOption.textContent = '\u5b57\u53f7';
+            const themeLabel = document.getElementById('themeColorLabel');
+            if (themeLabel) themeLabel.textContent = '\u4e3b\u9898\u989c\u8272';
+            const standardLabel = document.getElementById('standardColorLabel');
+            if (standardLabel) standardLabel.textContent = '\u6807\u51c6\u8272';
+            const moreLabel = document.getElementById('moreColorLabel');
+            if (moreLabel) moreLabel.textContent = '\u66f4\u591a\u989c\u8272';
+        }
+
+        function rgbToHex(color) {
+            if (!color) return '';
+            if (color.startsWith('#')) return color.toUpperCase();
+            const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+            if (!match) return '';
+            const r = Number(match[1]);
+            const g = Number(match[2]);
+            const b = Number(match[3]);
+            return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function getSelectionStyle() {
+            const selection = window.getSelection();
+            if (!selection || selection.rangeCount === 0) return null;
+            let node = selection.focusNode;
+            if (!node) return null;
+            if (node.nodeType === 3) node = node.parentElement;
+            if (!node) return null;
+            return window.getComputedStyle(node);
+        }
+
+        function updateFormattingControls() {
+            const editor = document.getElementById('contentEditor');
+            const selection = window.getSelection();
+            if (!isSelectionInEditor(selection, editor) || selection.rangeCount === 0) return;
+
+            const range = selection.getRangeAt(0);
+            let fontSize = null;
+            if (!range.collapsed) {
+                const maxSize = getMaxFontSizeInRange(range);
+                if (maxSize !== null) fontSize = `${maxSize}px`;
+            }
+            if (!fontSize) {
+                const style = getSelectionStyle();
+                if (style && style.fontSize) fontSize = style.fontSize;
+            }
+
+            const select = document.getElementById('fontSizeSelect');
+            if (select && fontSize) {
+                let option = select.querySelector(`option[value="${fontSize}"]`);
+                const custom = select.querySelector('option[data-custom="true"]');
+                if (!option) {
+                    if (custom) custom.remove();
+                    option = document.createElement('option');
+                    option.value = fontSize;
+                    option.textContent = fontSize.replace('px', '');
+                    option.setAttribute('data-custom', 'true');
+                    select.insertBefore(option, select.options[1] || null);
+                } else if (custom && option !== custom) {
+                    custom.remove();
+                }
+                select.value = fontSize;
+            }
+
+            const style = getSelectionStyle();
+            if (style) {
+                const color = rgbToHex(style.color);
+                if (color) setCurrentColor(color);
+            }
+        }
+
+        function setCurrentColor(color) {
+            const swatch = document.getElementById('currentColorSwatch');
+            if (swatch) swatch.style.background = color;
+            const moreInput = document.querySelector('.color-more-input');
+            if (moreInput) moreInput.value = color;
+        }
+
+        function applyPaletteColor(color) {
+            applyTextColor(color);
+            closeColorPanel();
+        }
+
+        function buildColorPalette() {
+            const themeColors = [
+                '#000000','#1F1F1F','#3F3F3F','#5F5F5F','#7F7F7F','#9F9F9F','#BFBFBF','#D9D9D9','#EDEDED','#FFFFFF',
+                '#1F4E79','#2F75B5','#5B9BD5','#9DC3E6','#DEEAF6','#0E5A6F','#117A8B','#4FA3B7','#9FD3E3','#E6F5F8',
+                '#7F6000','#BF9000','#F2C811','#FFE699','#FFF2CC','#843C0C','#C65911','#F4B183','#FCE4D6','#FDF2E9',
+                '#8064A2','#9E7CC1','#B4A7D6','#D9D2E9','#F2EEF7','#375623','#548235','#70AD47','#C6E0B4','#E2EFDA',
+                '#C00000','#FF0000','#E36C0A','#F4B084','#F8CBAD','#7030A0','#8064A2','#8FAADC','#BDD7EE','#DDEBF7'
+            ];
+            const standardColors = [
+                '#C00000','#FF0000','#FFC000','#FFFF00','#92D050','#00B050','#00B0F0','#0070C0','#002060','#7030A0'
+            ];
+
+            const themeGrid = document.getElementById('themeColorGrid');
+            const standardGrid = document.getElementById('standardColorGrid');
+            if (themeGrid) {
+                themeGrid.innerHTML = '';
+                themeColors.forEach(color => {
+                    const cell = document.createElement('button');
+                    cell.type = 'button';
+                    cell.className = 'color-cell';
+                    cell.style.background = color;
+                    cell.addEventListener('mousedown', function(e) { e.preventDefault(); saveSelectionRange(); });
+                    cell.addEventListener('click', function() { applyPaletteColor(color); });
+                    themeGrid.appendChild(cell);
+                });
+            }
+            if (standardGrid) {
+                standardGrid.innerHTML = '';
+                standardColors.forEach(color => {
+                    const cell = document.createElement('button');
+                    cell.type = 'button';
+                    cell.className = 'color-cell';
+                    cell.style.background = color;
+                    cell.addEventListener('mousedown', function(e) { e.preventDefault(); saveSelectionRange(); });
+                    cell.addEventListener('click', function() { applyPaletteColor(color); });
+                    standardGrid.appendChild(cell);
+                });
+            }
+        }
+
+        function toggleColorPanel(event) {
+            if (event) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            const panel = document.getElementById('colorPanel');
+            if (!panel) {
+                console.error('Color panel not found');
+                return;
+            }
+            
+            // 构建颜色面板
+            try {
+                buildColorPalette();
+            } catch (e) {
+                console.error('Error building color palette:', e);
+            }
+            
+            // 切换显示状态
+            const isShowing = panel.classList.contains('show');
+            if (isShowing) {
+                panel.classList.remove('show');
+            } else {
+                // 先关闭其他可能打开的面板
+                closeColorPanel();
+                panel.classList.add('show');
+            }
+        }
+
+        function closeColorPanel() {
+            const panel = document.getElementById('colorPanel');
+            if (panel) panel.classList.remove('show');
+        }
+
+        // 插入分隔线
+        function insertDivider() {
+            document.execCommand('insertHTML', false, '<hr class="my-6 border-t-2 border-gray-200">');
+            autoSave();
+        }
+
+        // 插入链接
+        function insertLink() {
+            const editor = document.getElementById('contentEditor');
+            editor.focus();
+            
+            // 预填充选中的文本
+            const selection = window.getSelection();
+            const selectedText = selection.toString().trim();
+            
+            // Save selection so link inserts at the original cursor position.
+            saveSelectionRange();
+            
+            document.getElementById('linkModal').classList.remove('hidden');
+            document.getElementById('linkText').value = selectedText || '';
+            document.getElementById('linkUrl').value = '';
+            
+            // 聚焦到URL输入框
+            setTimeout(() => document.getElementById('linkUrl').focus(), 100);
+        }
+
+        function closeLinkModal() {
+            document.getElementById('linkModal').classList.add('hidden');
+            document.getElementById('contentEditor').focus();
+        }
+
+        function confirmInsertLink() {
+            const text = document.getElementById('linkText').value.trim();
+            const url = document.getElementById('linkUrl').value.trim();
+            
+            if (text && url) {
+                const editor = document.getElementById('contentEditor');
+                editor.focus();
+                restoreSelectionRange();
+                
+                const selection = window.getSelection();
+                
+                // 创建链接元素
+                const link = document.createElement('a');
+                link.href = url;
+                link.target = '_blank';
+                link.style.cssText = 'display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;border-radius:4px;text-decoration:none;cursor:pointer;font-size:0.9em;';
+                link.title = '点击跳转: ' + url;
+                link.innerHTML = '<i class="fas fa-external-link-alt" style="font-size:0.8em;"></i>' + text;
+                
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    
+                    // 删除选中的内容（如果有）
+                    range.deleteContents();
+                    
+                    // 在当前光标位置插入链接
+                    range.insertNode(link);
+                    
+                    // 将光标移动到链接之后
+                    range.setStartAfter(link);
+                    range.setEndAfter(link);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    // 没有选区，在末尾插入
+                    editor.appendChild(link);
+                }
+                
+                showToast('链接已插入');
+                autoSave();
+            }
+            closeLinkModal();
+        }
+        
+        // 取消链接
+        function unlink() {
+            const editor = document.getElementById('contentEditor');
+            const selection = window.getSelection();
+            if (!isSelectionInEditor(selection, editor) || selection.rangeCount === 0) return;
+            
+            editor.focus();
+            const range = selection.getRangeAt(0);
+            
+            // 检查光标是否在链接内
+            let node = range.startContainer;
+            if (node.nodeType === Node.TEXT_NODE) {
+                node = node.parentElement;
+            }
+            
+            // 向上查找链接元素
+            let link = null;
+            let checkNode = node;
+            while (checkNode && checkNode !== editor) {
+                if (checkNode.tagName === 'A') {
+                    link = checkNode;
+                    break;
+                }
+                checkNode = checkNode.parentElement;
+            }
+            
+            if (link) {
+                // 在链接内，取消该链接
+                // 获取链接的内容
+                const content = document.createTextNode(link.textContent);
+                // 用内容替换链接
+                link.parentNode.replaceChild(content, link);
+                // 重新选中被解除链接的文本
+                const newRange = document.createRange();
+                newRange.selectNode(content);
+                selection.removeAllRanges();
+                selection.addRange(newRange);
+                showToast('链接已取消');
+                autoSave();
+            } else {
+                // 尝试使用 execCommand 取消链接（兼容性更好）
+                document.execCommand('unlink', false, null);
+                showToast('链接已取消');
+                autoSave();
+            }
+        }
+        
+        // 插入表格
+        function insertTable() {
+            // Save selection so table inserts at the original cursor position.
+            saveSelectionRange();
+            document.getElementById('tableModal').classList.remove('hidden');
+            document.getElementById('tableRows').value = 3;
+            document.getElementById('tableCols').value = 3;
+            setTimeout(() => document.getElementById('tableRows').focus(), 100);
+        }
+        
+        function closeTableModal() {
+            document.getElementById('tableModal').classList.add('hidden');
+            document.getElementById('contentEditor').focus();
+        }
+        
+        function confirmInsertTable() {
+            const rows = parseInt(document.getElementById('tableRows').value) || 3;
+            const cols = parseInt(document.getElementById('tableCols').value) || 3;
+            
+            const editor = document.getElementById('contentEditor');
+            editor.focus();
+            restoreSelectionRange();
+            
+            // 使用可调整大小的表格HTML
+            let tableHtml = '<div style="overflow-x:auto;margin:1rem 0;"><table style="width:100%;border-collapse:separate;border-spacing:0;border:1px solid #ddd;table-layout:auto;min-width:300px;">'
+            
+            // 表头
+            tableHtml += '<tr>';
+            for (let c = 0; c < cols; c++) {
+                tableHtml += `<th style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);color:white;padding:12px 16px;text-align:left;border:1px solid #ddd;font-weight:600;resize:horizontal;overflow:auto;min-width:80px;max-width:400px;word-wrap:break-word;white-space:normal;position:relative;" contenteditable="true">标题 ${c + 1}</th>`;
+            }
+            tableHtml += '</tr>';
+            
+            // 表体
+            for (let r = 0; r < rows; r++) {
+                const bgColor = r % 2 === 0 ? '#fff' : '#f9fafb';
+                tableHtml += `<tr style="background:${bgColor};">`;
+                for (let c = 0; c < cols; c++) {
+                    tableHtml += `<td style="padding:10px 16px;border:1px solid #ddd;resize:both;overflow:auto;min-width:80px;min-height:40px;word-wrap:break-word;white-space:normal;max-width:400px;" contenteditable="true">内容</td>`;
+                }
+                tableHtml += '</tr>';
+            }
+            tableHtml += '</table></div><p><br></p>';
+            
+            // 使用 insertHTML 命令
+            const success = document.execCommand('insertHTML', false, tableHtml);
+            
+            // 如果 execCommand 失败，使用备用方案
+            if (!success) {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const div = document.createElement('div');
+                    div.innerHTML = tableHtml;
+                    range.deleteContents();
+                    range.insertNode(div);
+                    // 移动光标到表格后
+                    range.setStartAfter(div);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+            
+            showToast('表格已插入，点击单元格可编辑');
+            autoSave();
+            closeTableModal();
+        }
+        
+        // 显示提示消息
+        function showToast(message) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-lg shadow-lg z-50 animate-fade-in';
+            toast.innerHTML = `<i class="fas fa-check mr-2"></i>${message}`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 2000);
+        }
+
+        // 图片粘贴功能
+        document.addEventListener('paste', function(e) {
+            const items = e.clipboardData.items;
+            for (let item of items) {
+                if (item.type.indexOf('image') !== -1) {
+                    e.preventDefault();
+                    const blob = item.getAsFile();
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const editor = document.getElementById('contentEditor');
+                        const wrapper = document.createElement('span');
+                        wrapper.className = 'image-resize-wrapper';
+                        wrapper.contentEditable = 'false';
+
+                        const img = document.createElement('img');
+                        img.src = event.target.result;
+                        img.className = 'max-w-full rounded-lg shadow-md my-4';
+
+                        const handle = document.createElement('span');
+                        handle.className = 'image-resize-handle';
+
+                        wrapper.appendChild(img);
+                        wrapper.appendChild(handle);
+
+                        const selection = window.getSelection();
+                        if (selection && selection.rangeCount > 0) {
+                            const range = selection.getRangeAt(0);
+                            range.deleteContents();
+                            range.insertNode(wrapper);
+                            range.setStartAfter(wrapper);
+                            range.collapse(true);
+                            selection.removeAllRanges();
+                            selection.addRange(range);
+                        } else {
+                            editor.appendChild(wrapper);
+                        }
+
+                        wrapImageForResize(img);
+                        autoSave();
+                    };
+                    reader.readAsDataURL(blob);
+                    break;
+                }
+            }
+        });
+
+        // 导出数据
+        function exportData() {
+            saveCurrentContent();
+            const header = {
+                title: (document.getElementById('sidebarTitle')?.textContent || '').trim(),
+                subtitle: (document.getElementById('sidebarSubtitle')?.textContent || '').trim()
+            };
+            const exportPayload = {
+                header,
+                days: travelData && Array.isArray(travelData.days) ? travelData.days : []
+            };
+            const dataStr = JSON.stringify(exportPayload, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            const rawSubtitle = header.subtitle || '????';
+            const safeSubtitle = rawSubtitle.replace(/[\\/:*?"<>|]/g, '').trim() || '????';
+            const now = new Date();
+            const dateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+            a.href = url;
+            a.download = `${safeSubtitle}_${dateStr}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        // 导入数据
+        function importData(input) {
+            const file = input.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    const days = Array.isArray(data)
+                        ? data
+                        : (data && Array.isArray(data.days) ? data.days : null);
+
+                    if (data && data.header) {
+                        if (typeof data.header.title === 'string') {
+                            const title = data.header.title.trim();
+                            localStorage.setItem('header:sidebarTitle', title);
+                            const titleEl = document.getElementById('sidebarTitle');
+                            if (titleEl) titleEl.textContent = title;
+                        }
+                        if (typeof data.header.subtitle === 'string') {
+                            const subtitle = data.header.subtitle.trim();
+                            localStorage.setItem('header:sidebarSubtitle', subtitle);
+                            const subtitleEl = document.getElementById('sidebarSubtitle');
+                            if (subtitleEl) subtitleEl.textContent = subtitle;
+                        }
+                    }
+
+                    if (days) {
+                        travelData = { days };
+                        saveToLocalStorage();
+                        renderSidebar();
+                        if (days.length > 0) {
+                            currentDayId = days[0].id;
+                            switchDay(currentDayId);
+                        } else {
+                            currentDayId = 0;
+                            const titleEl = document.getElementById('currentDayTitle');
+                            if (titleEl) titleEl.textContent = '';
+                            const editor = document.getElementById('contentEditor');
+                            if (editor) editor.innerHTML = '';
+                        }
+                        alert('\u5bfc\u5165\u6210\u529f\uff01');
+                    } else {
+                        alert('\u6570\u636e\u683c\u5f0f\u9519\u8bef\uff01');
+                    }
+                } catch (err) {
+                    alert('\u6587\u4ef6\u89e3\u6790\u5931\u8d25\uff01');
+                }
+            };
+            reader.readAsText(file);
+            input.value = '';
+        }
+
+        // 监听编辑器输入
+        document.addEventListener('DOMContentLoaded', function() {
+            initData();
+            renderSidebar();
+            if (travelData && Array.isArray(travelData.days) && travelData.days.length > 0) {
+                currentDayId = travelData.days[0].id;
+                switchDay(currentDayId);
+            } else {
+                currentDayId = 0;
+                const titleEl = document.getElementById('currentDayTitle');
+                if (titleEl) titleEl.textContent = '';
+                const editor = document.getElementById('contentEditor');
+                if (editor) editor.innerHTML = '';
+            }
+            initHeaderText();
+            initColorLabels();
+            buildColorPalette();
+            updateFormattingControls();
+
+            document.addEventListener('selectionchange', updateFormattingControls);
+            document.addEventListener('click', function(e) {
+                const picker = document.getElementById('colorPicker');
+                if (picker && !picker.contains(e.target)) {
+                    closeColorPanel();
+                }
+            });
+            
+            const editor = document.getElementById('contentEditor');
+            editor.addEventListener('input', autoSave);
+            editor.addEventListener('blur', saveCurrentContent);
+            editor.addEventListener('keyup', updateFormattingControls);
+            editor.addEventListener('mouseup', updateFormattingControls);
+            
+            editor.addEventListener('mousedown', function(e) {
+                const handle = e.target.closest('.image-resize-handle');
+                if (!handle) return;
+                e.preventDefault();
+                const wrapper = handle.closest('.image-resize-wrapper');
+                if (!wrapper) return;
+                resizingWrapper = wrapper;
+                resizeStartX = e.clientX;
+                resizeStartWidth = wrapper.getBoundingClientRect().width;
+                resizeMaxWidth = editor.clientWidth || resizeStartWidth;
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!resizingWrapper) return;
+                const delta = e.clientX - resizeStartX;
+                let newWidth = Math.max(80, resizeStartWidth + delta);
+                if (resizeMaxWidth) {
+                    newWidth = Math.min(newWidth, resizeMaxWidth);
+                }
+                resizingWrapper.style.width = `${newWidth}px`;
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (!resizingWrapper) return;
+                resizingWrapper = null;
+                autoSave();
+            });
+            
+            // 处理链接点击跳转
+            editor.addEventListener('click', function(e) {
+                const link = e.target.closest('a');
+                if (link && link.href) {
+                    // 判断是否按住 Ctrl/Cmd 键，如果是则在新标签页打开
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        window.open(link.href, '_blank');
+                    } else {
+                        // 普通点击也跳转，但给用户提示
+                        e.preventDefault();
+                        showToast('按住 Ctrl 点击可在新标签页打开');
+                        setTimeout(() => window.open(link.href, '_blank'), 500);
+                    }
+                }
+            });
+        });
+
+        // 键盘快捷键
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.key === 's') {
+                e.preventDefault();
+                saveCurrentContent();
+                const indicator = document.getElementById('saveStatus');
+                indicator.classList.add('show');
+                setTimeout(() => indicator.classList.remove('show'), 2000);
+            }
+        });
+    </script>
+</body>
+</html>
